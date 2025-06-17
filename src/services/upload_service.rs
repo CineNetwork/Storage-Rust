@@ -8,7 +8,7 @@ use crate::errors::UploadError;
 pub async fn upload_one_file(
     path: &Path,
     mut payload: Multipart,
-    allowed_extensions: &[String],
+    allowed_extensions: &[&str],
     end_filename: &str,
 ) -> Result<(), UploadError> {
     let mut field = payload
@@ -27,7 +27,7 @@ pub async fn upload_one_file(
         .and_then(|ext| ext.to_str())
         .ok_or(UploadError::ExtensionNotFound)?;
 
-    if !allowed_extensions.contains(&extension.to_string()) {
+    if !allowed_extensions.contains(&extension) {
         return Err(UploadError::ExtensionNotAllowed);
     }
 
@@ -46,7 +46,7 @@ pub async fn upload_one_file(
     Ok(())
 }
 
-pub async fn upload_ts_files_with_validation(
+pub async fn upload_ts_files(
     path: &Path,
     mut payload: Multipart,
     max_files: Option<usize>,

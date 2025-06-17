@@ -1,6 +1,7 @@
 use actix_web::HttpResponse;
+use crate::errors::UploadError;
 
-pub fn handle_upload_one_file_result(result: Result<(), UploadError>) -> HttpResponse {
+pub fn handle_upload_result(result: Result<(), UploadError>) -> HttpResponse {
     match result {
         Ok(()) => HttpResponse::Ok().json(serde_json::json!({
             "status": "success",
@@ -11,7 +12,7 @@ pub fn handle_upload_one_file_result(result: Result<(), UploadError>) -> HttpRes
             "error": "multipart_error",
             "message": format!("Multipart processing error: {}", msg)
         })),
-        Err(UploadError::FilenameNotFound) => HttpResponse::BadRequest().json(serde_json::json!({
+        Err(UploadError::FilenameNotFound) => HttpResponse::NotFound().json(serde_json::json!({
             "status": "error",
             "error": "filename_not_found",
             "message": "Filename not found in multipart data"
@@ -25,33 +26,6 @@ pub fn handle_upload_one_file_result(result: Result<(), UploadError>) -> HttpRes
             "status": "error",
             "error": "extension_not_allowed",
             "message": "File extension is not allowed"
-        })),
-        // Обработка IO ошибок (если UploadError реализует From<std::io::Error>)
-        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
-            "status": "error",
-            "error": "internal_error",
-            "message": format!("Internal server error: {}", e)
-        }))
-    }
-}
-
-// Обработчик ошибок для upload_ts_files_with_validation
-pub fn handle_upload_ts_files_result(result: Result<Vec<String>, UploadError>) -> HttpResponse {
-    match result {
-        Ok(uploaded_files) => HttpResponse::Ok().json(serde_json::json!({
-            "status": "success",
-            "message": format!("Successfully uploaded {} files", uploaded_files.len()),
-            "uploaded_files": uploaded_files
-        })),
-        Err(UploadError::MultipartError(msg)) => HttpResponse::BadRequest().json(serde_json::json!({
-            "status": "error",
-            "error": "multipart_error",
-            "message": format!("Multipart processing error: {}", msg)
-        })),
-        Err(UploadError::FilenameNotFound) => HttpResponse::BadRequest().json(serde_json::json!({
-            "status": "error",
-            "error": "filename_not_found",
-            "message": "Filename not found in multipart data"
         })),
         Err(UploadError::ValidationError(msg)) => HttpResponse::BadRequest().json(serde_json::json!({
             "status": "error",
@@ -68,11 +42,13 @@ pub fn handle_upload_ts_files_result(result: Result<Vec<String>, UploadError>) -
             "error": "invalid_filename",
             "message": msg
         })),
-        // Обработка остальных ошибок
-        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+        // Обработка IO ошибок (если UploadError реализует From<std::io::Error>)
+        Err(e) => {
+            eprintln!("Internal server error: {:?}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
             "status": "error",
             "error": "internal_error",
-            "message": format!("Internal server error: {}", e)
-        }))
+            "message": "Internal server error"
+        }))}
     }
 }
